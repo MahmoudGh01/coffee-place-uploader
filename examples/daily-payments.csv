@@ -1,0 +1,11 @@
+idempotency_key,coffee_type,price,currency,loyalty_card_id
+order-2026-06-09-001,LATTE,3.50,EUR,card-loyal-123
+order-2026-06-09-002,ESPRESSO,2.00,EUR,
+order-2026-06-09-003,CAPPUCCINO,3.80,EUR,card-loyal-456
+order-2026-06-09-004,FLAT_WHITE,4.00,EUR,
+order-2026-06-09-005,COLD_BREW,4.50,EUR,card-loyal-789
+order-2026-06-09-006,AMERICANO,2.80,EUR,
+order-2026-06-09-007,DOUBLE_ESPRESSO,2.80,EUR,card-loyal-123
+order-2026-06-09-008,MOCHA,4.20,EUR,
+order-2026-06-09-009,CORTADO,3.20,EUR,card-loyal-321
+order-2026-06-09-010,MACCHIATO,3.00,EUR,

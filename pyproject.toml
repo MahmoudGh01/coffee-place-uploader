@@ -1,0 +1,27 @@
+[project]
+name = "coffee-uploader"
+version = "0.1.0"
+description = "Reliably upload daily coffee-shop payments from CSV to the StarHarbour Payments API."
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "respx>=0.21",
+]
+
+[project.scripts]
+coffee-uploader = "coffee_uploader.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["coffee_uploader*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

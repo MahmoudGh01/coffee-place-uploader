@@ -15,6 +15,7 @@ dev = [
 
 [project.scripts]
 coffee-uploader = "coffee_uploader.cli:main"
+coffee-redirect-lb = "coffee_uploader.load_balancer:main"
 
 [build-system]
 requires = ["setuptools>=68"]

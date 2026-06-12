@@ -1,0 +1,59 @@
+services:
+  lb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: coffee-redirect-lb
+    command:
+      - coffee-redirect-lb
+      - --instances
+      - http://harbour-1:8090,http://harbour-2:8090,http://harbour-3:8090
+      - --health-path
+      - /
+      - --public-instances
+      - http://localhost:8081,http://localhost:8082,http://localhost:8083
+      - --listen-host
+      - 0.0.0.0
+      - --listen-port
+      - "8090"
+      - --check-interval
+      - "3"
+    ports:
+      - "8090:8090"
+    depends_on:
+      - harbour-1
+      - harbour-2
+      - harbour-3
+
+  harbour-1:
+    build:
+      context: ../harbour-cloud-26
+      dockerfile: Dockerfile
+    container_name: harbour-1
+    environment:
+      SERVER_PORT: 8090
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    ports:
+      - "8081:8090"
+
+  harbour-2:
+    build:
+      context: ../harbour-cloud-26
+      dockerfile: Dockerfile
+    container_name: harbour-2
+    environment:
+      SERVER_PORT: 8090
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    ports:
+      - "8082:8090"
+
+  harbour-3:
+    build:
+      context: ../harbour-cloud-26
+      dockerfile: Dockerfile
+    container_name: harbour-3
+    environment:
+      SERVER_PORT: 8090
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    ports:
+      - "8083:8090"

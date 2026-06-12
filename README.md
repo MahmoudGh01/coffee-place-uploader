@@ -41,7 +41,7 @@ pip install -e ".[dev]"
 
 ```bash
 python -m coffee_uploader examples/daily-payments.csv \
-  --api-url http://localhost:8080 \
+  --api-url http://localhost:8090 \
   --store-id coffee-place-01
 ```
 
@@ -49,7 +49,7 @@ Or, after install, the entry-point script:
 
 ```bash
 coffee-uploader examples/daily-payments.csv \
-  --api-url http://localhost:8080 \
+  --api-url http://localhost:8090 \
   --store-id coffee-place-01
 ```
 
@@ -133,9 +133,119 @@ python -m coffee_uploader examples/daily-payments.csv \
 pytest
 ```
 
-14 tests cover CSV parsing edge cases and HTTP client behavior (retry on
+18 tests cover CSV parsing edge cases, HTTP client behavior (retry on
 5xx/429/connection errors, no retry on 4xx, idempotent 200 vs 201
-handling, exact request body shape).
+handling, exact request body shape), and load balancer selection/health logic.
+
+## Redirect load balancer (Homework 1)
+
+This repository now also includes a tiny **HTTP 302 redirect load balancer**
+that can distribute traffic across several app instances from homework 1.
+
+### Start it
+
+```bash
+coffee-redirect-lb \
+  --instances http://localhost:8080,http://localhost:8081,http://localhost:8082 \
+  --listen-port 8090
+```
+
+You can also provide instances from a file:
+
+```bash
+coffee-redirect-lb --instances-file ./instances.txt
+```
+
+Where `instances.txt` contains one URL per line (empty lines and `# comments`
+are ignored).
+
+If your backend addresses are internal (for example Docker service DNS names),
+you can provide client-facing redirect addresses separately:
+
+```bash
+coffee-redirect-lb \
+  --instances http://harbour-1:8090,http://harbour-2:8090,http://harbour-3:8090 \
+  --public-instances http://localhost:8081,http://localhost:8082,http://localhost:8083
+```
+
+`--instances` is used for health checks; `--public-instances` is used in the
+`Location` header for `302` redirects. Both lists must have the same size and
+matching order.
+
+### How it works
+
+- `GET /_lb/services` — returns the list of configured services with current
+  health status (`healthy: true/false`) and both internal/public URLs.
+- `GET /_lb/health` — returns the load balancer health (`UP` when at least
+  one backend is healthy, otherwise `DOWN` with `503`).
+- Any other path is redirected with `302 Found` to a selected healthy backend
+  preserving the original path/query string.
+
+### Health checks
+
+- Default check endpoint is `/actuator/health` on each backend.
+- A backend is considered healthy when:
+  - HTTP status is `2xx`, and
+  - if the response is JSON with a `status` field, its value is `UP`.
+- Configure with:
+  - `--health-path` (default: `/actuator/health`)
+  - `--health-timeout` (default: `2.0` seconds)
+  - `--check-interval` (default: `5.0` seconds)
+
+### Load balancing algorithm
+
+The balancer uses **Round Robin** across healthy instances:
+
+- Request 1 -> instance A
+- Request 2 -> instance B
+- Request 3 -> instance C
+- then repeats from A
+
+If no instance is healthy, the balancer returns `503 Service Unavailable`
+instead of redirecting.
+
+### Run with Docker Compose (LB + 3 harbour instances)
+
+From `coffee-place-uploader/`:
+
+```bash
+docker compose up --build
+```
+
+Services exposed on host:
+
+- Load balancer: `http://localhost:8090`
+- Harbour instance 1: `http://localhost:8081`
+- Harbour instance 2: `http://localhost:8082`
+- Harbour instance 3: `http://localhost:8083`
+
+The load balancer uses:
+
+- backend list: `http://harbour-1:8090,http://harbour-2:8090,http://harbour-3:8090`
+- public redirect list: `http://localhost:8081,http://localhost:8082,http://localhost:8083`
+- `--health-path /` (important: current `harbour-cloud-26` image does not expose
+  `/actuator/health` by default)
+
+Quick checks:
+
+```bash
+# LB sees service health
+curl -s http://localhost:8090/_lb/services
+
+# LB health
+curl -i http://localhost:8090/_lb/health
+
+# Any regular route returns a redirect (302) to one healthy backend
+curl -i http://localhost:8090/api/v1/payments?storeId=store-1
+```
+
+Run uploader through the LB:
+
+```bash
+coffee-uploader examples/daily-payments.csv \
+  --api-url http://localhost:8090 \
+  --store-id coffee-place-01
+```
 
 ## Layout
 
@@ -143,13 +253,15 @@ handling, exact request body shape).
 coffee_uploader/
 ├── __main__.py    # python -m coffee_uploader
 ├── cli.py         # argparse entry point
+├── load_balancer.py # 302 redirect load balancer service
 ├── models.py      # Payment, UploadResult, UploadReport
 ├── parser.py      # CSV → Payment with validation
 ├── client.py      # httpx client with retry + idempotency
 └── uploader.py    # orchestrates parse → upload → summary
 tests/
 ├── test_parser.py
-└── test_client.py
+├── test_client.py
+└── test_load_balancer.py
 examples/
 └── daily-payments.csv
 ```

@@ -1,0 +1,28 @@
+[project]
+name = "async-payments-service"
+version = "0.1.0"
+description = "Async bulk payment processor for harbour-cloud-26"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.116",
+    "uvicorn>=0.35",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "httpx>=0.28",
+    "pydantic>=2.11",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

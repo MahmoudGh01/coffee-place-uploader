@@ -5,6 +5,16 @@ posts them to the **StarHarbour Payments API**
 (`harbour-cloud-26`). Safe to re-run — every row carries an idempotency
 key so retries never create duplicate payments.
 
+## Additional subproject: async bulk processing service
+
+This repository also contains a separate subproject implementing async bulk
+payment processing with PostgreSQL persistence and a dedicated worker:
+
+- `async-payments-service/`
+
+See `async-payments-service/README.md` for API usage, Docker Compose startup,
+and testing commands.
+
 ## Why it exists
 
 You own the Coffee Place. You collect payments in your notebook during the

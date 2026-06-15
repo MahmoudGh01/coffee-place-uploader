@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: async_payments
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  bulk-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/async_payments
+      HARBOUR_BASE_URL: http://host.docker.internal:8090
+    ports:
+      - "8100:8100"
+    depends_on:
+      - postgres
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100"]
+
+  bulk-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/async_payments
+      HARBOUR_BASE_URL: http://host.docker.internal:8090
+      WORKER_POLL_SECONDS: "2"
+      WORKER_MAX_ATTEMPTS: "3"
+    depends_on:
+      - postgres
+    command: ["python", "-m", "app.worker"]
+
+volumes:
+  pgdata:
